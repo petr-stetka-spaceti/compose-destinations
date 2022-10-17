@@ -1,16 +1,16 @@
 plugins {
     id("com.android.library")
     kotlin("android")
-    //id("com.vanniktech.maven.publish")
+    id("com.vanniktech.maven.publish")
     kotlin("plugin.serialization")
 }
 
 android {
-    /*plugins.withId("com.vanniktech.maven.publish") {
+    plugins.withId("com.vanniktech.maven.publish") {
         mavenPublish {
             sonatypeHost = com.vanniktech.maven.publish.SonatypeHost.S01
         }
-    }*/
+    }
 
     compileSdk = libs.versions.compileSdk.get().toIntOrNull()
 
