@@ -18,6 +18,7 @@ buildscript {
         classpath(libs.pluginVersion)
         classpath(libs.kotlin)
         classpath(libs.kotlinSerialization)
+        classpath(libs.mavenPublishPlugin)
     }
 }
 

@@ -39,6 +39,7 @@ dependencyCheckPlugin = { id = "com.github.ben-manes.versions", version.ref = "d
 kotlin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
 kotlinSerialization = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
 pluginVersion = { module = "com.android.tools.build:gradle", version.ref = "gradlePluginVersion" }
+mavenPublishPlugin = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "mavenPublishPluginVersion" }
 
 # Android
 androidMaterial = { module = "com.google.android.material:material", version.ref = "material" }
