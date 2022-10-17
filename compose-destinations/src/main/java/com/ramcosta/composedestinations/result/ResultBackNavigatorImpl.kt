@@ -13,7 +13,6 @@ import com.ramcosta.composedestinations.spec.DestinationSpec
 import kotlin.reflect.KType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
-import kotlin.reflect.KType
 
 internal class ResultBackNavigatorImpl<R>(
     private val navController: NavController,
