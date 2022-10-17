@@ -8,9 +8,16 @@ import kotlin.reflect.KType
  */
 class EmptyResultBackNavigator<R> : ResultBackNavigator<R> {
 
-    override fun navigateBack(result: R, type: KType?) = Unit
+    override fun navigateBack(
+        result: R,
+        onlyIfResumed: Boolean,
+        type: KType?
+    ) = Unit
 
-    override fun setResult(result: R, type: KType?) = Unit
+    override fun setResult(
+        result: R,
+        type: KType?
+    ) = Unit
 
     override fun navigateBack() = Unit
 }

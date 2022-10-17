@@ -32,9 +32,17 @@ interface ResultBackNavigator<R> {
      * Check [com.ramcosta.composedestinations.result.ResultRecipient] to see
      * how to get the result.
      *
+     * @param onlyIfResumed if true, will ignore the navigation action if the current `NavBackStackEntry`
+     * is not in the RESUMED state. This avoids duplicate navigation actions.
+     * By default is false to have the same behaviour as [NavController].
+     *
      * @param type must be used only with @kotlinx.serialization.Serializable [result]
      */
-    fun navigateBack(result: R, type: KType? = null)
+    fun navigateBack(
+        result: R,
+        onlyIfResumed: Boolean = false,
+        type: KType? = null
+    )
 
     /**
      * Sets a [result] to be sent on the next [navigateBack] call.

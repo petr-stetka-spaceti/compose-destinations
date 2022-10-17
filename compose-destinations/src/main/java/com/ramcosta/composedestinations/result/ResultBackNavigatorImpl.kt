@@ -7,14 +7,17 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import com.ramcosta.composedestinations.spec.DestinationSpec
+import kotlin.reflect.KType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
 import kotlin.reflect.KType
 
 internal class ResultBackNavigatorImpl<R>(
     private val navController: NavController,
+    private val navBackStackEntry: NavBackStackEntry,
     resultOriginType: Class<out DestinationSpec<*>>,
     resultType: Class<R>
 ) : ResultBackNavigator<R> {
@@ -22,12 +25,23 @@ internal class ResultBackNavigatorImpl<R>(
     private val resultKey = resultKey(resultOriginType, resultType)
     private val canceledKey = canceledKey(resultOriginType, resultType)
 
-    override fun navigateBack(result: R, type: KType?) {
+    override fun navigateBack(
+        result: R,
+        onlyIfResumed: Boolean,
+        type: KType?
+    ) {
+        if (onlyIfResumed && navBackStackEntry.lifecycle.currentState != Lifecycle.State.RESUMED) {
+            return
+        }
+
         setResult(result, type)
         navigateBack()
     }
 
-    override fun setResult(result: R, type: KType?) {
+    override fun setResult(
+        result: R,
+        type: KType?
+    ) {
         navController.previousBackStackEntry?.savedStateHandle?.let {
             it[canceledKey] = false
             it[resultKey] = trySerializeWithKotlinX(result, type) ?: result
