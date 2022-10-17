@@ -1,14 +1,14 @@
 plugins {
     kotlin("jvm")
-    id("com.vanniktech.maven.publish")
+    //id("com.vanniktech.maven.publish")
 }
 
 java {
-    plugins.withId("com.vanniktech.maven.publish") {
+    /*plugins.withId("com.vanniktech.maven.publish") {
         mavenPublish {
             sonatypeHost = com.vanniktech.maven.publish.SonatypeHost.S01
         }
-    }
+    }*/
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
