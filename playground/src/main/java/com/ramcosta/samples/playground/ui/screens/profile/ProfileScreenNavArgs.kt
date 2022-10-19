@@ -34,10 +34,11 @@ data class Things(
     val thing2: String = "ASDASDASD"
 ) : ArgumentThings
 
+@kotlinx.serialization.Serializable
 data class SerializableExampleWithNavTypeSerializer(
     val thing1: String = "SERIALIZABLE/11/1",
     val thing2: String = "qweqew?asd=SERIALIZABLE222"
-) : Serializable
+)
 
 data class SerializableExample(
     val thing1: String = "SerializableExampleWithNoNavTypeSerializer/11/1",

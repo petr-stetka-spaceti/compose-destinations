@@ -17,8 +17,6 @@ import androidx.compose.ui.res.stringResource
 import com.ramcosta.composedestinations.annotation.DeepLink
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
-import com.ramcosta.composedestinations.navigation.EmptyDestinationsNavigator
-import com.ramcosta.composedestinations.result.EmptyResultRecipient
 import com.ramcosta.composedestinations.result.ResultRecipient
 import com.ramcosta.samples.playground.commons.SettingsNavGraph
 import com.ramcosta.samples.playground.commons.requireTitle
@@ -42,7 +40,7 @@ fun SettingsScreen(
     themeSettingsResultRecipient: ResultRecipient<ThemeSettingsDestination, SerializableExampleWithNavTypeSerializer>
 ) {
     val context = LocalContext.current
-    themeSettingsResultRecipient.onNavResult {
+    themeSettingsResultRecipient.onNavResultSerializable<SerializableExampleWithNavTypeSerializer> {
         println("result = $it")
         Toast.makeText(context, "confirmed? = $it", Toast.LENGTH_LONG).show()
     }
@@ -82,9 +80,9 @@ fun SettingsScreen(
 //@Preview
 @Composable
 fun SettingsPreview() {
-    SettingsScreen(
+    /*SettingsScreen(
         EmptyDestinationsNavigator,
         SettingsViewModel(),
         EmptyResultRecipient()
-    )
+    )*/
 }

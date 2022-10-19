@@ -1,67 +1,110 @@
 package com.ramcosta.composedestinations.result
 
-import androidx.compose.runtime.*
+import android.annotation.SuppressLint
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
+import com.ramcosta.composedestinations.spec.DestinationSpec
+import kotlinx.serialization.encodeToString
 import kotlin.reflect.KType
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
 
-/**
- * Navigator that allows navigating back while passing
- * a result of type [R].
- *
- * If declared as a parameter of a `@Destination` annotated Composable,
- * Compose Destinations will provide a correct implementation. If you're
- * manually calling that Composable, then you can use
- * [com.ramcosta.composedestinations.manualcomposablecalls.resultBackNavigator]
- * extension function to get a correctly typed implementation.
- *
- * Type safety related limitations (compile time enforced):
- * - [R] must be one of String, Boolean, Float, Int, Long, Serializable, or Parcelable.
- * They can be nullable.
- * - [R] type cannot have type arguments itself (f.e you can't use Array<String> even though it is Serializable)
- * - Each annotated Composable can have at most one parameter of type [ResultBackNavigator]
- *
- * @see [com.ramcosta.composedestinations.result.ResultRecipient]
- */
-interface ResultBackNavigator<R> {
+class ResultBackNavigator<R>(
+    val navController: NavController,
+    private val navBackStackEntry: NavBackStackEntry,
+    resultOriginType: Class<out DestinationSpec<*>>,
+    resultType: Class<R>
+) {
+    val resultKey = resultKey(resultOriginType, resultType)
+    val canceledKey = canceledKey(resultOriginType, resultType)
 
-    /**
-     * Goes back to previous destination sending [result].
-     *
-     * It uses [NavController.navigateUp] internally to go back.
-     *
-     * Check [com.ramcosta.composedestinations.result.ResultRecipient] to see
-     * how to get the result.
-     *
-     * @param onlyIfResumed if true, will ignore the navigation action if the current `NavBackStackEntry`
-     * is not in the RESUMED state. This avoids duplicate navigation actions.
-     * By default is false to have the same behaviour as [NavController].
-     *
-     * @param type must be used only with @kotlinx.serialization.Serializable [result]
-     */
+    val isResumed = navBackStackEntry.lifecycle.currentState == Lifecycle.State.RESUMED
+
     fun navigateBack(
         result: R,
-        onlyIfResumed: Boolean = false,
-        type: KType? = null
-    )
+        onlyIfResumed: Boolean = false
+    ) {
+        if (onlyIfResumed && !isResumed) {
+            return
+        }
 
-    /**
-     * Sets a [result] to be sent on the next [navigateBack] call.
-     *
-     * Check [com.ramcosta.composedestinations.result.ResultRecipient] to see
-     * how to get the result.
-     *
-     * If multiple calls are done, the last one will be the result sent back.
-     * This also applies if you call [navigateBack] (with result) after calling this.
-     *
-     * @param type must be used only with @kotlinx.serialization.Serializable [result]
-     */
-    fun setResult(result: R, type: KType? = null)
+        setResult(result)
+        navigateBack()
+    }
 
-    /**
-     * Goes back to previous destination sending the last result set with [setResult]
-     * or just navigating if no result was set..
-     *
-     * It uses [NavController.navigateUp] internally to go back.
-     */
-    fun navigateBack()
+    inline fun <reified R> navigateBackSerializable(
+        result: R,
+        onlyIfResumed: Boolean = false
+    ) {
+        if (onlyIfResumed && !isResumed) {
+            return
+        }
+
+        setResultSerializable(result)
+        navigateBack()
+    }
+
+    fun setResult(result: R) {
+        navController.previousBackStackEntry?.savedStateHandle?.let {
+            it[canceledKey] = false
+            it[resultKey] = result
+        }
+    }
+
+    inline fun <reified R> setResultSerializable(result: R) {
+        navController.previousBackStackEntry?.savedStateHandle?.let {
+            val json = Json.encodeToString(result)
+
+            it[canceledKey] = false
+            it[resultKey] = json
+        }
+    }
+
+    fun navigateBack(onlyIfResumed: Boolean = false) {
+        if (onlyIfResumed && !isResumed) {
+            return
+        }
+
+        navController.navigateUp()
+    }
+
+    @SuppressLint("ComposableNaming")
+    @Composable
+    fun handleCanceled() {
+        val currentNavBackStackEntry = remember { navController.currentBackStackEntry } ?: return
+
+        DisposableEffect(key1 = Unit) {
+            val observer = object : LifecycleEventObserver {
+                override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                    when (event) {
+                        Lifecycle.Event.ON_RESUME -> {
+                            val savedStateHandle =
+                                navController.previousBackStackEntry?.savedStateHandle ?: return
+
+                            if (!savedStateHandle.contains(canceledKey)) {
+                                // We set canceled to true when this destination becomes visible
+                                // When a value to be returned is set, we will put the canceled to `false`
+                                savedStateHandle[canceledKey] = true
+                                currentNavBackStackEntry.lifecycle.removeObserver(this)
+                            }
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
+
+            currentNavBackStackEntry.lifecycle.addObserver(observer)
+
+            onDispose {
+                currentNavBackStackEntry.lifecycle.removeObserver(observer)
+            }
+        }
+    }
 }
