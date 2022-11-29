@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     kotlin("android")
+    kotlin("plugin.serialization")
 }
 
 apply(from = "${rootProject.projectDir}/publish.gradle")
@@ -48,4 +49,5 @@ tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach 
 
 dependencies {
     api(libs.compose.navigation)
+    api(libs.ktxSerializationJson)
 }
