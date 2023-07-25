@@ -5,57 +5,156 @@ package com.ramcosta.composedestinations.result
 
 import android.annotation.SuppressLint
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisallowComposableCalls
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.navigation.NavBackStackEntry
 import com.ramcosta.composedestinations.spec.DestinationSpec
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 
-/**
- * Recipient where you can install a listener to be notified of results (of type [R])
- * from a specific [DestinationSpec] (of type [D]).
- *
- * If declared as a parameter of a `@Destination` annotated Composable,
- * Compose Destinations will provide a correct implementation. If you're
- * manually calling that Composable, then you can use
- * [com.ramcosta.composedestinations.result.resultRecipient]
- * extension function to get a correctly typed implementation.
- *
- * Type safety related limitations (compile time enforced):
- * - [R] must be one of String, Boolean, Float, Int, Long, Serializable, or Parcelable.
- * They can be nullable.
- * - [R] type cannot have type arguments itself (f.e you can't use Array<String> even though it is Serializable)
- * - Each annotated Composable can have at most one parameter of type [ResultRecipient] for a given [DestinationSpec] ([D])
- * - [D] destination Composable must have a corresponding [ResultBackNavigator] of the same type [R]
- *
- * @see [com.ramcosta.composedestinations.result.ResultBackNavigator]
- */
-interface ResultRecipient<D : DestinationSpec<*>, R> : OpenResultRecipient<R> {
+class ResultRecipient<D : DestinationSpec<*>, R>(
+    val navBackStackEntry: NavBackStackEntry,
+    resultOriginType: Class<D>,
+    resultType: Class<R>,
+) {
 
-    /**
-     * Install a [listener] that will be called when the [D] destination
-     * finishes. [NavResult] will either contain a specific result [R] for [NavResult.Value]
-     * or it will be [NavResult.Canceled] if [D] finishes without setting any result.
-     *
-     * Implementation makes sure to only do something the first time it is called,
-     * so, no need to worry about recomposition.
-     *
-     * [listener] will not be called from a Compose scope, it should be treated
-     * as a normal button click listener, you can navigate or call a method on a view model,
-     * for example.
-     */
+    val resultKey = resultKey(resultOriginType, resultType)
+    val canceledKey = canceledKey(resultOriginType, resultType)
+
     @Composable
-    override fun onNavResult(listener: @DisallowComposableCalls (NavResult<R>) -> Unit)
+    fun onNavResult(listener: (NavResult<R>) -> Unit) {
+        val currentListener by rememberUpdatedState(listener)
 
-    /**
-     * Install a [listener] that will be called when the [D] destination
-     * finishes with a specific result [R].
-     *
-     * Implementation makes sure to only do something the first time it is called,
-     * so, no need to worry about recomposition.
-     *
-     * [listener] will not be called from a Compose scope, it should be treated
-     * as a normal button click listener, you can navigate or call a method on a view model,
-     * for example.
-     */
-    @Deprecated("You should migrate to `onNavResult` as this API will be removed in the near future.")
+        DisposableEffect(key1 = Unit) {
+            val observer = object : LifecycleEventObserver {
+                override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                    when (event) {
+                        Lifecycle.Event.ON_START,
+                        Lifecycle.Event.ON_RESUME -> {
+                            handleResultIfPresent(currentListener)
+                        }
+
+                        Lifecycle.Event.ON_DESTROY -> {
+                            navBackStackEntry.lifecycle.removeObserver(this)
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
+
+            navBackStackEntry.lifecycle.addObserver(observer)
+
+            onDispose {
+                navBackStackEntry.lifecycle.removeObserver(observer)
+            }
+        }
+    }
+
     @Composable
-    fun onResult(listener: @DisallowComposableCalls (R) -> Unit)
+    inline fun <reified R> onNavResultSerializable(noinline listener: (NavResult<R>) -> Unit) {
+        val currentListener by rememberUpdatedState(listener)
+
+        DisposableEffect(key1 = Unit) {
+            val observer = object : LifecycleEventObserver {
+                override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                    when (event) {
+                        Lifecycle.Event.ON_START,
+                        Lifecycle.Event.ON_RESUME -> {
+                            handleResultIfPresentSerializable(currentListener)
+                        }
+
+                        Lifecycle.Event.ON_DESTROY -> {
+                            navBackStackEntry.lifecycle.removeObserver(this)
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
+
+            navBackStackEntry.lifecycle.addObserver(observer)
+
+            onDispose {
+                navBackStackEntry.lifecycle.removeObserver(observer)
+            }
+        }
+    }
+
+    private fun handleResultIfPresent(listener: (NavResult<R>) -> Unit) {
+        if (!hasAnyResult()) {
+            return
+        }
+
+        val canceled = navBackStackEntry.savedStateHandle.remove<Boolean>(canceledKey)
+
+        if (canceled == true) {
+            listener(NavResult.Canceled)
+        } else if (navBackStackEntry.savedStateHandle.contains(resultKey)) {
+            listener(
+                NavResult.Value(
+                    navBackStackEntry.savedStateHandle.remove<R>(resultKey) as R
+                )
+            )
+        }
+    }
+
+    inline fun <reified R> handleResultIfPresentSerializable(listener: (NavResult<R>) -> Unit) {
+        if (!hasAnyResult()) {
+            return
+        }
+
+        val canceled = navBackStackEntry.savedStateHandle.remove<Boolean>(canceledKey)
+
+        if (canceled == true) {
+            listener(NavResult.Canceled)
+        } else if (navBackStackEntry.savedStateHandle.contains(resultKey)) {
+            listener(
+                NavResult.Value(
+                    Json.decodeFromString(navBackStackEntry.savedStateHandle.remove<String>(resultKey)!!)
+                )
+            )
+        }
+    }
+
+    fun hasAnyResult(): Boolean {
+        return navBackStackEntry.savedStateHandle.contains(canceledKey) ||
+                navBackStackEntry.savedStateHandle.contains(resultKey)
+    }
+
+    @Suppress("OVERRIDE_DEPRECATION", "OverridingDeprecatedMember")
+    @Composable
+    fun onResult(listener: (R) -> Unit) {
+        val currentListener by rememberUpdatedState(listener)
+
+        DisposableEffect(key1 = Unit) {
+            val observer = object : LifecycleEventObserver {
+                override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+                    when (event) {
+                        Lifecycle.Event.ON_RESUME -> {
+                            if (navBackStackEntry.savedStateHandle.contains(resultKey)) {
+                                currentListener(navBackStackEntry.savedStateHandle.remove<R>(resultKey) as R)
+                            }
+                        }
+
+                        Lifecycle.Event.ON_DESTROY -> {
+                            navBackStackEntry.lifecycle.removeObserver(this)
+                        }
+
+                        else -> Unit
+                    }
+                }
+            }
+
+            navBackStackEntry.lifecycle.addObserver(observer)
+
+            onDispose {
+                navBackStackEntry.lifecycle.removeObserver(observer)
+            }
+        }
+    }
 }

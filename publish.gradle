@@ -1,14 +1,12 @@
 apply plugin: "com.vanniktech.maven.publish"
 
-def tag = "git describe --tags --abbrev=0".execute().text.trim()
-
 group = "io.github.raamcosta.compose-destinations"
-version = tag
+version = "1.9.54"
 
 mavenPublishing {
-    publishToMavenCentral("S01")
-
-    signAllPublications()
+    // Do not do this on Jitpack builds
+    // publishToMavenCentral("S01")
+    // signAllPublications()
 
     pom {
         description = "Annotation processing library for type-safe Jetpack Compose navigation with no boilerplate."
