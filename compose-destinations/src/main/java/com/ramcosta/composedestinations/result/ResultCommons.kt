@@ -18,7 +18,7 @@ internal fun <R> resultBackNavigator(
 ): ResultBackNavigator<R> {
 
     val backNavigator = remember {
-        ResultBackNavigatorImpl(
+        ResultBackNavigator(
             navController = navController,
             navBackStackEntry = navBackStackEntry,
             resultOriginType = destination.originalDestination.javaClass,
@@ -38,7 +38,7 @@ internal fun <D : DestinationSpec<*>, R> resultRecipient(
     originType: Class<D>,
     resultType: Class<R>
 ): ResultRecipient<D, R> = remember(navBackStackEntry) {
-    ResultRecipientImpl(
+    ResultRecipient(
         navBackStackEntry = navBackStackEntry,
         resultOriginType = originType,
         resultType = resultType,

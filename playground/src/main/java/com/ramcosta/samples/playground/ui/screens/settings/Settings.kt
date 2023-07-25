@@ -18,7 +18,6 @@ import com.ramcosta.composedestinations.annotation.DeepLink
 import com.ramcosta.composedestinations.annotation.Destination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.navigation.EmptyDestinationsNavigator
-import com.ramcosta.composedestinations.result.EmptyResultRecipient
 import com.ramcosta.composedestinations.result.ResultRecipient
 import com.ramcosta.samples.playground.commons.SettingsNavGraph
 import com.ramcosta.samples.playground.commons.requireTitle
@@ -82,9 +81,9 @@ fun SettingsScreen(
 //@Preview
 @Composable
 fun SettingsPreview() {
-    SettingsScreen(
+    /*SettingsScreen(
         EmptyDestinationsNavigator,
         SettingsViewModel(),
         EmptyResultRecipient()
-    )
+    )*/
 }
