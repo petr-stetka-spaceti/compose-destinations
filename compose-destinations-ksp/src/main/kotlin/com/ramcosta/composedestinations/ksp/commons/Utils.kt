@@ -119,10 +119,11 @@ fun KSType.findActualClassDeclaration(): KSClassDeclaration? {
     return declaration as? KSClassDeclaration?
 }
 
-fun KSClassDeclaration.toImportable(): Importable {
+fun KSClassDeclaration.toImportable(): Importable? {
+    val qualifiedNameSafe = qualifiedName ?: return null
     return Importable(
         simpleName.asString(),
-        qualifiedName!!.asString()
+        qualifiedNameSafe.asString()
     )
 }
 
